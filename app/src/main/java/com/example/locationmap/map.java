@@ -6,7 +6,7 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
@@ -23,14 +23,16 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
+ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.Vector;
+
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -44,6 +46,10 @@ public class map extends FragmentActivity implements OnMapReadyCallback {
     LatLng coords;
     Timer timer;
 
+    JsonObject object;
+
+    double oldLat,oldLong;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,6 +57,8 @@ public class map extends FragmentActivity implements OnMapReadyCallback {
 
         latitude=getIntent().getDoubleExtra("latitude",0.0);
         longitude=getIntent().getDoubleExtra("longitude",0.00);
+        oldLat=latitude;
+        oldLong=longitude;
 
         SupportMapFragment mapFragment= (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -64,7 +72,8 @@ public class map extends FragmentActivity implements OnMapReadyCallback {
 
         timer=new Timer();
 
-
+         object=new JsonObject();
+         object.addProperty("id","5ef7096349cc7e2fbc2db420");
 
 
 //        markerOptions.position()
@@ -83,16 +92,11 @@ public class map extends FragmentActivity implements OnMapReadyCallback {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-//                        JsonObject object=new JsonObject();
-//                        object.addProperty("id","5ef7096349cc7e2fbc2db420");
-//                        getLocation(object);
+//
+                        getLocation(object);
                         if(gMap!=null)
                         {
-                            double oldLat=latitude;
-                            double oldLong=longitude;
 
-                            latitude +=1.0;
-                            longitude +=1.0;
 
                             PolylineOptions options=new PolylineOptions().add(new LatLng(oldLat,oldLong)).add(new LatLng(latitude,longitude))
                                     .width((float)5.0).color(Color.RED).geodesic(true);
@@ -114,7 +118,7 @@ public class map extends FragmentActivity implements OnMapReadyCallback {
         };
 
 
-        timer.schedule(repeatTask,0l,1000*30);
+        timer.schedule(repeatTask,0l,1000*70);
     }
 
     private BitmapDescriptor bitmapDescriptorfromVector(Context context, int vectorId)
@@ -145,9 +149,19 @@ public class map extends FragmentActivity implements OnMapReadyCallback {
             public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
                 if(response.isSuccessful())
                 {
-                    JsonObject obj=response.body();
+                    JsonObject resBody= response.body();
 
-                    Toast.makeText(map.this,"Response: "+response.body(),Toast.LENGTH_LONG).show();
+                    Gson g=new Gson();
+
+                    Type collectionType=new TypeToken<Location>(){}.getType();
+                    Location location=g.fromJson(resBody,collectionType);
+                    oldLat=latitude;
+                    oldLong=longitude;
+
+                    latitude= Double.parseDouble(location.latitude);
+                    longitude= Double.parseDouble(location.longitude);
+
+                    Toast.makeText(map.this,"Location=>: "+location.latitude.toString(),Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -157,5 +171,7 @@ public class map extends FragmentActivity implements OnMapReadyCallback {
             }
         });
     }
+
+
 
 }
